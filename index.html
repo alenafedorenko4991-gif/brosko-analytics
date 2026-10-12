@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>BROSKO — тижнева аналітика</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap" rel="stylesheet">
+<script src="vendor/d3.v7.9.0.min.js"></script>
+<style>
+:root{
+  --color-fg:#1d1f23;--color-fg-muted:#6b7079;--color-bg:#f6f5f2;--color-panel:#ffffff;--color-border-line:#e4e2dc;
+  --color-ok:#1f8a4c;--color-warn:#b7791f;--color-bad:#c93838;
+  --font-anthropic-sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-anthropic-serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --cds-font-size-caption:12.5px;--cds-font-size-body:14.5px;--cds-font-size-heading:16px;--cds-font-size-title:28px;--cds-font-weight-medium:600;
+  --cds-gap-xs:4px;--cds-gap-sm:8px;--cds-gap-md:14px;--cds-gap-lg:22px;--cds-gap-xl:32px;
+  --cds-pad-xs:4px;--cds-pad-sm:8px;--cds-pad-md:12px;--cds-pad-lg:18px;--cds-pad-xl:28px;--cds-radius:12px;
+  --cds-chart-muted:#c9cdd3;--cds-chart-status-critical:#d64545;--cds-chart-grid:#ecebe7;--cds-chart-axis:#c6c3bb;--cds-chart-reference:#9aa0a8;
+  --cds-surface-popover:#ffffff;--cds-border:#dedcd5;--cds-shadow-popover:0 6px 24px rgba(20,20,30,.12);--cds-text-secondary:#6b7079;
+  --cds-dur-slow:.35s;--cds-ease-out:cubic-bezier(.2,.7,.2,1);
+  --c1:#3b6fd8;--c2:#e8833a;--c3:#2e9d6b;--c4:#d9a520;--c5:#8a63d2;--c6:#2aa3c4;--c7:#d4568c;--c8:#7a8a99;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --color-fg:#ececec;--color-fg-muted:#a1a5ad;--color-bg:#16171a;--color-panel:#1f2024;--color-border-line:#33353a;
+    --color-ok:#4cc483;--color-warn:#e0a948;--color-bad:#f06b6b;
+    --cds-chart-muted:#4a4f57;--cds-chart-status-critical:#f06b6b;--cds-chart-grid:#2c2e33;--cds-chart-axis:#4a4d54;--cds-chart-reference:#7d838c;
+    --cds-surface-popover:#26282d;--cds-border:#3a3c42;--cds-shadow-popover:0 8px 28px rgba(0,0,0,.45);--cds-text-secondary:#a1a5ad;
+    --c1:#6b96ef;--c2:#f29a58;--c3:#4cc483;--c4:#e6bd45;--c5:#a789e6;--c6:#4cc0de;--c7:#e47aa7;--c8:#98a6b3;
+    color-scheme:dark;
+  }
+}
+html,body{margin:0;background:var(--color-bg);color:var(--color-fg);font-family:var(--font-anthropic-sans);-webkit-font-smoothing:antialiased}
+.site{max-width:1240px;margin:0 auto;padding:28px 16px 64px}
+@media (min-width:720px){.site{padding:40px 32px 80px}}
+.brand{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-fg-muted);margin-bottom:14px}
+.brand b{color:var(--color-fg);letter-spacing:.2em}
+.updated{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-top:28px;text-align:center}
+.dash-skeleton{color:transparent!important;position:relative}
+.dash-skeleton::after{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:min(9rem,80%);height:.8em;border-radius:6px;background:var(--color-border-line);animation:sk 1.2s ease-in-out infinite alternate}
+@keyframes sk{from{opacity:.45}to{opacity:1}}
+.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--color-bg);padding:16px;z-index:50}
+.gate[hidden]{display:none}
+.gate-card{width:min(100%,380px);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:16px;padding:28px;box-shadow:var(--cds-shadow-popover);display:flex;flex-direction:column;gap:14px}
+.gate-card h1{font-family:var(--font-anthropic-serif);font-weight:400;font-size:26px;margin:0}
+.gate-card p{margin:0;color:var(--color-fg-muted);font-size:14px;line-height:1.45}
+.gate-card input[type=password]{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid var(--color-border-line);background:var(--color-bg);color:var(--color-fg)}
+.gate-card button{font:inherit;font-weight:600;padding:11px 14px;border-radius:10px;border:0;background:var(--color-fg);color:var(--color-bg);cursor:pointer}
+.gate-card label{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--color-fg-muted)}
+.gate-err{color:var(--color-bad)!important;min-height:1.2em}
+</style>
+<style>
+.bw{font-family:var(--font-anthropic-sans);color:var(--color-fg);display:flex;flex-direction:column;gap:var(--cds-gap-lg);font-size:var(--cds-font-size-body)}
+.bw *{box-sizing:border-box}
+.bw-top{display:flex;flex-direction:column;gap:var(--cds-gap-sm)}
+.bw-title{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.2;margin:0}
+.bw-take{margin:0;max-width:62rem;line-height:1.45}
+.bw-meta{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
+.bw-weeks{display:flex;gap:var(--cds-gap-xs);overflow-x:auto;padding-bottom:2px}
+.bw-chip{font:inherit;font-size:var(--cds-font-size-caption);padding:var(--cds-pad-xs) var(--cds-pad-sm);border:1px solid var(--color-border-line);border-radius:999px;background:transparent;color:var(--color-fg);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bw-chip[aria-pressed=true]{background:var(--color-fg);color:var(--color-bg);border-color:var(--color-fg)}
+.bw-tabs{display:flex;gap:var(--cds-gap-lg);border-bottom:1px solid var(--color-border-line);overflow-x:auto}
+.bw-tab{font:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:var(--cds-pad-sm) 0;color:var(--color-fg-muted);cursor:pointer;white-space:nowrap}
+.bw-tab[aria-selected=true]{color:var(--color-fg);border-bottom-color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.bw-page{display:flex;flex-direction:column;gap:var(--cds-gap-lg)}
+.bw-page[hidden]{display:none}
+.bw-h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:var(--cds-gap-sm) 0 0}
+.bw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--cds-gap-md)}
+.bw-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:var(--cds-gap-md)}
+.bw-card{position:relative;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-sm);min-width:0}
+.bw-card h3{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0}
+.bw-note{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:0;line-height:1.4}
+.bw-label{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.bw-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.15;font-variant-numeric:tabular-nums;min-height:1.15em}
+.bw-delta,.bw-sub{font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums;color:var(--color-fg-muted);min-height:1.3em}
+.bw-up{color:var(--color-ok)}.bw-down{color:var(--color-bad)}
+.bw-badge{display:inline-block;font-weight:var(--cds-font-weight-medium);padding:1px 6px;border-radius:999px;margin-right:6px;font-variant-numeric:tabular-nums}
+.bw-badge.up{color:var(--color-ok);background:color-mix(in srgb,var(--color-ok) 16%,transparent)}
+.bw-badge.down{color:var(--color-bad);background:color-mix(in srgb,var(--color-bad) 16%,transparent)}
+.bw-badge.flat{color:var(--color-fg-muted);background:color-mix(in srgb,var(--color-fg-muted) 14%,transparent)}
+.bw-spark{height:44px;min-height:44px;margin-top:auto}
+.bw-chart{min-height:240px;width:100%}
+.bw-chart.sm{min-height:180px}
+.bw-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-xs) var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);min-height:1.2em}
+.bw-legend span{display:inline-flex;align-items:center;gap:6px}
+.bw-sw{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.bw-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--cds-gap-sm)}
+.bw-list li{display:grid;grid-template-columns:1.4rem 1fr;gap:var(--cds-gap-xs);line-height:1.45}
+.bw-ico{font-weight:var(--cds-font-weight-medium);text-align:center}
+.bw-ico.good{color:var(--color-ok)}.bw-ico.bad{color:var(--color-bad)}.bw-ico.action{color:var(--color-warn)}.bw-ico.info{color:var(--color-fg-muted)}
+.bw-tablewrap{overflow-x:auto}
+.bw-scroll{max-height:34rem;overflow:auto}
+.bw-table{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.bw-table th{position:sticky;top:0;background:var(--color-panel);text-align:left;font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);padding:var(--cds-pad-xs) var(--cds-pad-sm);border-bottom:1px solid var(--color-border-line);white-space:nowrap;z-index:1}
+.bw-table th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.bw-table td{padding:var(--cds-pad-xs) var(--cds-pad-sm);border-bottom:1px solid var(--color-border-line);vertical-align:top}
+.bw-table .n{text-align:right;white-space:nowrap}
+.bw-table th.n{text-align:right}
+.bw-table tr.lvl-dir td{font-weight:var(--cds-font-weight-medium)}
+.bw-table tr.lvl-cat td:first-child{padding-left:calc(var(--cds-pad-sm) + 1rem)}
+.bw-table td.wide{min-width:16rem}
+.bw-table a{color:inherit}
+.bw-camp{min-width:62rem}
+.bw-posts{min-width:46rem}
+.bw-funnel,.bw-bars{display:flex;flex-direction:column;gap:var(--cds-gap-sm);min-height:200px}
+.bw-step{display:grid;gap:4px}
+.bw-step-top{display:flex;justify-content:space-between;gap:var(--cds-gap-sm);font-size:var(--cds-font-size-caption)}
+.bw-step-top b{font-variant-numeric:tabular-nums}
+.bw-track{position:relative;height:16px}
+.bw-bar{position:absolute;left:0;top:0;height:12px;border-radius:4px}
+.bw-bar.prev{top:13px;height:3px;background:var(--cds-chart-muted);opacity:.7}
+.bw-loss{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
+.bw-loss.worst{color:var(--color-bad)}
+.bw-pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:var(--cds-gap-md)}
+.bw-tip{position:absolute;z-index:5;pointer-events:none;background:var(--cds-surface-popover);border:1px solid var(--cds-border);border-radius:var(--cds-radius);box-shadow:var(--cds-shadow-popover);padding:var(--cds-pad-xs) var(--cds-pad-sm);font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums;max-width:18rem}
+.bw-tip-h{color:var(--cds-text-secondary);margin-bottom:2px}
+.bw-tip-r{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.bw-tip-r b{margin-left:auto;padding-left:var(--cds-gap-sm);font-weight:var(--cds-font-weight-medium)}
+.bw-fail{display:flex;align-items:center;justify-content:center;gap:8px;min-height:inherit;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption)}
+.bw-fail::before{content:"";width:.375rem;height:.375rem;border-radius:50%;background:var(--color-bad)}
+.bw [data-dash-source-state=empty]{color:transparent}
+.bw [data-dash-source-state=refreshing]{opacity:.5;transition:opacity var(--cds-dur-slow)}
+.bw svg text{font-family:var(--font-anthropic-sans)}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate-card" role="dialog" aria-labelledby="gate-title">
+    <div class="brand"><b>BROSKO</b> · маркетинг</div>
+    <h1 id="gate-title">Тижнева аналітика</h1>
+    <p>Дані захищені паролем. Введіть пароль, щоб відкрити звіт.</p>
+    <input type="password" id="gate-pass" autocomplete="current-password" placeholder="Пароль" aria-label="Пароль">
+    <label><input type="checkbox" id="gate-remember" checked> Запам’ятати на цьому пристрої</label>
+    <button type="button" id="gate-go">Відкрити</button>
+    <p class="gate-err" id="gate-err" aria-live="polite"></p>
+  </div>
+</div>
+<main class="site" id="site" hidden>
+  <div class="brand"><b>BROSKO</b> · маркетинг</div>
+  <div id="dash-root">
+<div class="bw" id="bw">
+  <div class="bw-top">
+    <h1 class="bw-title" id="top">BROSKO: тижнева аналітика</h1>
+    <p class="bw-take dash-skeleton" id="takeaway" data-source="insights" data-field="text">—</p>
+    <div class="bw-meta">Тиждень <b id="week-now" data-source="meta_weekly" data-field="week_label">—</b> · порівняння з попереднім · дані оновлюються щопонеділка вранці</div>
+    <div class="bw-weeks" id="weeks" data-source="meta_weekly" role="group" aria-label="Оберіть тиждень"></div>
+  </div>
+
+  <div class="bw-tabs" role="tablist" aria-label="Розділи">
+    <button class="bw-tab" role="tab" data-tab="overview" id="tab-overview">Огляд</button>
+    <button class="bw-tab" role="tab" data-tab="ads" id="tab-ads">Таргет</button>
+    <button class="bw-tab" role="tab" data-tab="dm" id="tab-dm">Переписки і Дірект</button>
+    <button class="bw-tab" role="tab" data-tab="social" id="tab-social">Instagram і Facebook</button>
+    <button class="bw-tab" role="tab" data-tab="sales" id="tab-sales">Онлайн-продажі</button>
+  </div>
+
+  <section class="bw-page" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="bw-kpis" id="kpis"></div>
+    <div class="bw-card" id="conclusions">
+      <h3>Висновки тижня</h3>
+      <ul class="bw-list" id="insights-list"></ul>
+    </div>
+  </section>
+
+  <section class="bw-page" id="ads" role="tabpanel" aria-labelledby="tab-ads" hidden>
+    <div class="bw-card" id="ads-spend">
+      <h3>Витрати за напрямами по тижнях</h3>
+      <p class="bw-note">$ за тиждень. Натисніть на стовпчик, щоб обрати тиждень.</p>
+      <div class="bw-legend" id="ads-legend" data-source="ads_breakdown"></div>
+      <div class="bw-chart" id="ads-spend-chart" data-source="ads_breakdown"></div>
+    </div>
+    <div class="bw-card" id="ads-dirs">
+      <h3>Напрями і категорії за тиждень</h3>
+      <p class="bw-note">Ціна кліку — за кліки по посиланню; ціна переписки має сенс лише для кампаній, що ведуть у Дірект.</p>
+      <div class="bw-tablewrap">
+        <table class="bw-table" id="ads-dirs-table" data-source="ads_breakdown" data-row-key="key">
+          <thead><tr>
+            <th data-field="label"><button type="button">Напрям / категорія</button></th>
+            <th class="n" data-field="spend_usd"><button type="button">Витрати</button></th>
+            <th class="n" data-field="share"><button type="button">Частка</button></th>
+            <th class="n" data-field="link_clicks"><button type="button">Кліки</button></th>
+            <th class="n" data-field="cpc_link_usd"><button type="button">Ціна кліку</button></th>
+            <th class="n" data-field="conversations"><button type="button">Переписки</button></th>
+            <th class="n" data-field="cost_per_conversation_usd"><button type="button">Ціна переписки</button></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bw-grid">
+      <div class="bw-card" id="cpc-trend">
+        <h3>Ціна кліку</h3>
+        <p class="bw-note">Усі кампанії, $ за клік по посиланню</p>
+        <div class="bw-chart sm" id="cpc-chart" data-source="meta_weekly"></div>
+      </div>
+      <div class="bw-card" id="cpm-trend">
+        <h3>Ціна переписки</h3>
+        <p class="bw-note">Напрям «1 Переписки», $ за нову переписку</p>
+        <div class="bw-chart sm" id="cpmsg-chart" data-source="msg_cost"></div>
+      </div>
+    </div>
+    <div class="bw-card" id="ads-campaigns">
+      <h3>Кампанії тижня</h3>
+      <p class="bw-note">Натисніть на заголовок стовпця, щоб відсортувати.</p>
+      <div class="bw-tablewrap bw-scroll">
+        <table class="bw-table bw-camp" id="camp-table" data-source="meta_campaigns" data-row-key="week,campaign_id">
+          <thead><tr>
+            <th data-field="campaign"><button type="button">Кампанія</button></th>
+            <th data-field="direction"><button type="button">Напрям</button></th>
+            <th data-field="category"><button type="button">Категорія</button></th>
+            <th data-field="objective"><button type="button">Ціль</button></th>
+            <th class="n" data-field="spend_usd"><button type="button">Витрати</button></th>
+            <th class="n" data-field="reach"><button type="button">Охоплення</button></th>
+            <th class="n" data-field="link_clicks"><button type="button">Кліки</button></th>
+            <th class="n" data-field="unique_link_ctr"><button type="button">CTR</button></th>
+            <th class="n" data-field="cpc_link_usd"><button type="button">Ціна кліку</button></th>
+            <th class="n" data-field="conversations"><button type="button">Переписки</button></th>
+            <th class="n" data-field="cost_per_conversation_usd"><button type="button">Ціна переписки</button></th>
+            <th data-field="status"><button type="button">Статус</button></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="bw-page" id="dm" role="tabpanel" aria-labelledby="tab-dm" hidden>
+    <div class="bw-grid">
+      <div class="bw-card" id="funnel-card">
+        <h3>Воронка переписок з реклами</h3>
+        <p class="bw-note">Глибина переписок — за даними Meta; останній крок — усі онлайн-замовлення тижня. Тонка смуга — попередній тиждень.</p>
+        <div class="bw-funnel" id="funnel" data-source="funnel"></div>
+      </div>
+      <div class="bw-card" id="outcomes-card">
+        <h3>Чим закінчились запити в Дірект</h3>
+        <p class="bw-note">За журналом «Запити в Дірект». Червоним — найчастіша причина, чому не купили.</p>
+        <div class="bw-bars" id="outcomes" data-source="dm_outcomes"></div>
+      </div>
+    </div>
+    <div class="bw-card" id="dm-products">
+      <h3>Запити за товарами</h3>
+      <p class="bw-note">Про що питали в Дірект цього тижня і чим закінчилось.</p>
+      <div class="bw-tablewrap">
+        <table class="bw-table" id="dm-table" data-source="dm_products" data-row-key="key">
+          <thead><tr>
+            <th data-field="product_group"><button type="button">Товар</button></th>
+            <th class="n" data-field="requests"><button type="button">Запитів</button></th>
+            <th class="n" data-field="orders"><button type="button">Замовлення</button></th>
+            <th class="n" data-field="store"><button type="button">У магазин</button></th>
+            <th class="n" data-field="no_size"><button type="button">Немає розміру / товару</button></th>
+            <th class="n" data-field="ignored"><button type="button">Ігнор після відповіді</button></th>
+            <th class="n" data-field="unread"><button type="button">Не прочитали</button></th>
+            <th class="n" data-field="other"><button type="button">Інше</button></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bw-card" id="dm-trend">
+      <h3>Запити в Дірект по тижнях</h3>
+      <p class="bw-note">Стовпчики — запити з журналу «Запити в Дірект» за результатом (колонка «Результат»). Лінія — фактичні онлайн-замовлення з таблиці продажів. Якщо лінія вища за зелений сегмент, замовлення не позначені в журналі.</p>
+      <div class="bw-legend" id="dm-legend" data-source="dm_weekly sales_weekly"></div>
+      <div class="bw-chart" id="dm-trend-chart" data-source="dm_weekly sales_weekly"></div>
+    </div>
+  </section>
+
+  <section class="bw-page" id="social" role="tabpanel" aria-labelledby="tab-social" hidden>
+    <h2 class="bw-h2" id="ig-head">Instagram @brosko.in.ua</h2>
+    <div class="bw-kpis" id="ig-kpis"></div>
+    <div class="bw-grid">
+      <div class="bw-card" id="ig-follows">
+        <h3>Підписки і відписки по тижнях</h3>
+        <div class="bw-legend" id="ig-legend" data-source="social_weekly"></div>
+        <div class="bw-chart" id="ig-follows-chart" data-source="social_weekly"></div>
+      </div>
+      <div class="bw-card" id="ig-reach">
+        <h3>Охоплення профілю по тижнях</h3>
+        <p class="bw-note">Унікальні акаунти, які бачили контент за тиждень (з рекламою).</p>
+        <div class="bw-chart sm" id="ig-reach-chart" data-source="social_weekly"></div>
+      </div>
+    </div>
+    <div class="bw-card" id="ig-posts">
+      <h3>Публікації тижня</h3>
+      <p class="bw-note">Reels і пости, опубліковані цього тижня. Цифри — на момент оновлення, з часом ростуть.</p>
+      <div class="bw-tablewrap">
+        <table class="bw-table bw-posts" id="posts-table" data-source="ig_posts" data-row-key="media_id">
+          <thead><tr>
+            <th data-field="posted"><button type="button">Дата</button></th>
+            <th data-field="type"><button type="button">Тип</button></th>
+            <th data-field="caption"><button type="button">Публікація</button></th>
+            <th class="n" data-field="reach"><button type="button">Охоплення</button></th>
+            <th class="n" data-field="views"><button type="button">Перегляди</button></th>
+            <th class="n" data-field="likes"><button type="button">Вподобання</button></th>
+            <th class="n" data-field="comments"><button type="button">Коментарі</button></th>
+            <th class="n" data-field="saves"><button type="button">Збереження</button></th>
+            <th class="n" data-field="shares"><button type="button">Поширення</button></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <h2 class="bw-h2" id="fb-head">Facebook-сторінка Brosko</h2>
+    <div class="bw-kpis" id="fb-kpis"></div>
+  </section>
+
+  <section class="bw-page" id="sales" role="tabpanel" aria-labelledby="tab-sales" hidden>
+    <div class="bw-kpis" id="sales-kpis"></div>
+    <div class="bw-grid">
+      <div class="bw-card" id="sales-trend">
+        <h3>Виторг і маржа по тижнях</h3>
+        <p class="bw-note">Онлайн-продажі, грн; повернення віднімаються в тижні повернення.</p>
+        <div class="bw-legend" id="sales-legend" data-source="sales_weekly"></div>
+        <div class="bw-chart" id="sales-chart" data-source="sales_weekly"></div>
+      </div>
+      <div class="bw-card" id="sales-groups">
+        <h3>Що продали за тиждень</h3>
+        <div class="bw-tablewrap">
+          <table class="bw-table" id="groups-table" data-source="sales_groups" data-row-key="key">
+            <thead><tr>
+              <th data-field="group"><button type="button">Група</button></th>
+              <th class="n" data-field="items"><button type="button">Позицій</button></th>
+              <th class="n" data-field="revenue_uah"><button type="button">Виторг</button></th>
+              <th class="n" data-field="margin_uah"><button type="button">Маржа</button></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="bw-card" id="payback">
+      <h3>Чи окуповуються переписки</h3>
+      <p class="bw-note">Витрати на кампанії напряму «1 Переписки» в гривнях (умовний курс 42 грн за $) і маржа всіх онлайн-продажів тижня. Не кожне онлайн-замовлення приходить з реклами, тож це оцінка зверху.</p>
+      <div class="bw-pay">
+        <div><div class="bw-label">Реклама на переписки</div><div class="bw-big" id="pay-spend" data-source="msg_payback" data-field="msg_spend_uah">—</div></div>
+        <div><div class="bw-label">Маржа онлайн-продажів</div><div class="bw-big" id="pay-margin" data-source="msg_payback" data-field="margin_uah">—</div></div>
+        <div><div class="bw-label">Маржі на 1 грн реклами</div><div class="bw-big" id="pay-ratio" data-source="msg_payback" data-field="margin_per_uah">—</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+  </div>
+  <div class="updated" id="updated"></div>
+</main>
+<script>
+/* Мінімальна заміна середовища дашборда: дані з зашифрованого файлу data.enc.json */
+window.dash = (() => {
+  const ds = {}, specs = {}, order = [], listeners = [];
+  let params = {}, ready = false, t = null;
+  const fire = () => { for (const fn of listeners) { try { fn(); } catch (e) { console.error(e); } } };
+  const api = {
+    colors: ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)', 'var(--c8)'],
+    data(id) {
+      if (!ready) return { status: 'loading', data: [], columns: [], meta: [] };
+      if (!(id in ds)) return { status: 'missing', data: [], columns: [], meta: [] };
+      const d = ds[id];
+      return { status: 'ok', data: d, columns: Array.isArray(d) && d.length ? Object.keys(d[0]) : [], meta: [] };
+    },
+    calc(id, spec) { specs[id] = spec; order.push(id); },
+    loader() {},
+    onData(fn) { listeners.push(fn); try { fn(); } catch (e) { console.error(e); } },
+    params() { return { ...params }; },
+    setParams(p) { params = { ...params, ...p }; fire(); },
+    resetParams() { params = {}; fire(); },
+    setLink(name) { try { history.replaceState(null, '', '#' + name); } catch (e) {} },
+    refresh() {},
+    _load(datasets) {
+      Object.assign(ds, datasets);
+      for (const id of order) {
+        const s = specs[id];
+        try { ds[id] = s.fn(...s.inputs.map((i) => ds[i] || [])); } catch (e) { console.error('calc', id, e); }
+      }
+      ready = true; fire();
+    },
+  };
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(fire, 150); });
+  return api;
+})();
+</script>
+<script>
+/* ---------- Розрахунки (видно в «Джерелах») ---------- */
+dash.calc('sales_weekly', {
+  title: 'Онлайн-продажі по тижнях',
+  description: 'Замовлення без повернень, позиції, виторг, маржа (виторг мінус собівартість), середній чек і повернення за кожен тиждень.',
+  inputs: ['online_orders', 'meta_weekly'],
+  fn: (online_orders, meta_weekly) => meta_weekly.map((w) => {
+    const rows = online_orders.filter((r) => r.week === w.week);
+    const isRet = (r) => r.is_return === true || r.is_return === 'true';
+    const sold = rows.filter((r) => !isRet(r));
+    const orders = new Set(sold.map((r) => r.order)).size;
+    const sum = (list, f) => list.reduce((s, r) => s + Number(r[f]), 0);
+    const revenue = sum(rows, 'revenue_uah');
+    return {
+      week: w.week,
+      orders,
+      items: sum(sold, 'qty'),
+      revenue_uah: Math.round(revenue),
+      margin_uah: Math.round(revenue - sum(rows, 'cogs_uah')),
+      avg_check_uah: orders ? Math.round(sum(sold, 'revenue_uah') / orders) : null,
+      returns: new Set(rows.filter(isRet).map((r) => r.order)).size,
+    };
+  }),
+});
+
+dash.calc('dm_weekly', {
+  title: 'Запити в Дірект по тижнях',
+  description: 'Скільки запитів записано в журнал «Запити в Дірект» за тиждень і чим вони закінчились, згруповано.',
+  inputs: ['direct_requests', 'meta_weekly'],
+  fn: (direct_requests, meta_weekly) => meta_weekly.map((w) => {
+    const rows = direct_requests.filter((r) => r.week === w.week);
+    const sum = (names) => rows.filter((r) => names.includes(r.outcome)).reduce((s, r) => s + Number(r.requests), 0);
+    const orders = sum(['Замовлення']);
+    const store = sum(['Прийде / купив у магазині']);
+    return {
+      week: w.week,
+      requests: rows.reduce((s, r) => s + Number(r.requests), 0),
+      won: orders + store,
+      orders,
+      store,
+      no_size: sum(['Немає розміру або товару']),
+      not_fit: sum(['Не підійшла модель чи колір', 'Не підійшли ціна чи умови']),
+      ghosted: sum(['Ігнор після відповіді', 'Не прочитав / не відповів']),
+      other: sum(['Думає / не зараз', 'Без позначки', 'Інфо-питання']),
+    };
+  }),
+});
+
+dash.calc('msg_cost', {
+  title: 'Ціна переписки по тижнях',
+  description: 'Витрати і нові переписки кампаній напряму «1 Переписки» та ціна однієї переписки в доларах.',
+  inputs: ['meta_campaigns', 'meta_weekly'],
+  fn: (meta_campaigns, meta_weekly) => meta_weekly.map((w) => {
+    const rows = meta_campaigns.filter((r) => r.week === w.week && String(r.direction).startsWith('1'));
+    const spend = rows.reduce((s, r) => s + Number(r.spend_usd), 0);
+    const conv = rows.reduce((s, r) => s + Number(r.conversations), 0);
+    return {
+      week: w.week,
+      msg_spend_usd: Math.round(spend * 100) / 100,
+      msg_conversations: conv,
+      cost_per_msg_usd: conv ? Math.round((spend / conv) * 100) / 100 : null,
+    };
+  }),
+});
+
+dash.calc('kpi', {
+  title: 'Зміна до попереднього тижня',
+  description: 'Головні показники тижня, різниця з попереднім тижнем і зміна у відсотках (0,25 = +25%).',
+  inputs: ['meta_weekly', 'social_weekly', 'sales_weekly', 'dm_weekly', 'msg_cost'],
+  fn: (meta_weekly, social_weekly, sales_weekly, dm_weekly, msg_cost) => {
+    const by = (rows) => new Map(rows.map((r) => [r.week, r]));
+    const m = by(meta_weekly), s = by(social_weekly), o = by(sales_weekly), d = by(dm_weekly), c = by(msg_cost);
+    const weeks = meta_weekly.map((r) => r.week).sort();
+    const pick = (w) => ({
+      orders: o.get(w)?.orders ?? 0,
+      revenue_uah: o.get(w)?.revenue_uah ?? 0,
+      requests: d.get(w)?.requests ?? 0,
+      msg_started: Number(m.get(w)?.msg_started ?? 0),
+      cost_per_msg_usd: c.get(w)?.cost_per_msg_usd ?? null,
+      spend_usd: Number(m.get(w)?.spend_usd ?? 0),
+      reach: Number(m.get(w)?.reach ?? 0),
+      ig_net_follows: s.has(w) ? Number(s.get(w).ig_net_follows) : null,
+    });
+    return weeks.map((w, i) => {
+      const cur = pick(w);
+      const prev = i > 0 ? pick(weeks[i - 1]) : null;
+      const row = { week: w };
+      for (const k of Object.keys(cur)) {
+        const a = cur[k], b = prev ? prev[k] : null;
+        row[k] = a;
+        row[k + '_diff'] = a != null && b != null ? Math.round((a - b) * 100) / 100 : null;
+        row[k + '_pct'] = a != null && b ? Math.round((a / b - 1) * 1000) / 1000 : null;
+      }
+      return row;
+    });
+  },
+});
+
+dash.calc('wow', {
+  title: 'Динаміка за тиждень, %',
+  description: 'Зміна показників Instagram, Facebook і онлайн-продажів до попереднього тижня у відсотках (0,25 = +25%). Якщо минулого тижня було 0, відсоток не рахується.',
+  inputs: ['social_weekly', 'sales_weekly'],
+  fn: (social_weekly, sales_weekly) => {
+    const by = (rows) => new Map(rows.map((r) => [r.week, r]));
+    const s = by(social_weekly), o = by(sales_weekly);
+    const weeks = [...new Set([...s.keys(), ...o.keys()])].sort();
+    const social = ['ig_follows', 'ig_unfollows', 'ig_net_follows', 'ig_reach', 'ig_views', 'ig_followers_total', 'fb_followers', 'fb_new_followers', 'fb_media_views', 'fb_page_visits', 'fb_engagements', 'fb_new_conversations'];
+    const sales = ['orders', 'items', 'revenue_uah', 'margin_uah', 'avg_check_uah', 'returns'];
+    const pct = (a, b) => (a == null || b == null || Number(b) <= 0 ? null : Math.round((Number(a) / Number(b) - 1) * 1000) / 1000);
+    return weeks.map((w, i) => {
+      const p = weeks[i - 1];
+      const row = { week: w };
+      for (const f of social) row[f + '_pct'] = p ? pct(s.get(w)?.[f], s.get(p)?.[f]) : null;
+      for (const f of sales) row[f + '_pct'] = p ? pct(o.get(w)?.[f], o.get(p)?.[f]) : null;
+      return row;
+    });
+  },
+});
+
+dash.calc('ads_breakdown', {
+  title: 'Таргет: напрями і категорії',
+  description: 'Витрати, частка бюджету тижня, кліки, ціна кліку, переписки і ціна переписки (лише для напряму «1 Переписки») за напрямом і категорією.',
+  inputs: ['meta_campaigns'],
+  fn: (meta_campaigns) => {
+    const agg = (rows, total) => {
+      const msg = rows.every((r) => String(r.direction).startsWith('1'));
+      const spend = rows.reduce((s, r) => s + Number(r.spend_usd), 0);
+      const clicks = rows.reduce((s, r) => s + Number(r.link_clicks), 0);
+      const conv = rows.reduce((s, r) => s + Number(r.conversations), 0);
+      return {
+        spend_usd: Math.round(spend * 100) / 100,
+        share: total ? Math.round((spend / total) * 1000) / 1000 : null,
+        link_clicks: clicks,
+        cpc_link_usd: clicks ? Math.round((spend / clicks) * 1000) / 1000 : null,
+        conversations: conv,
+        cost_per_conversation_usd: msg && conv ? Math.round((spend / conv) * 100) / 100 : null,
+      };
+    };
+    const out = [];
+    for (const w of [...new Set(meta_campaigns.map((r) => r.week))].sort()) {
+      const rows = meta_campaigns.filter((r) => r.week === w);
+      const total = rows.reduce((s, r) => s + Number(r.spend_usd), 0);
+      for (const d of [...new Set(rows.map((r) => r.direction))].sort()) {
+        const dr = rows.filter((r) => r.direction === d);
+        out.push({ key: w + '|' + d + '|', week: w, level: 'Напрям', direction: d, category: '', label: d, ...agg(dr, total) });
+        const cats = [...new Set(dr.map((r) => r.category))].map((c) => ({ c, a: agg(dr.filter((r) => r.category === c), total) }));
+        cats.sort((x, y) => y.a.spend_usd - x.a.spend_usd);
+        for (const { c, a } of cats) out.push({ key: w + '|' + d + '|' + c, week: w, level: 'Категорія', direction: d, category: c, label: c, ...a });
+      }
+    }
+    return out;
+  },
+});
+
+dash.calc('dm_outcomes', {
+  title: 'Дірект: результати запитів',
+  description: 'Скільки запитів у Дірект за тиждень закінчились кожним результатом і яка це частка від усіх запитів тижня.',
+  inputs: ['direct_requests'],
+  fn: (direct_requests) => {
+    const m = new Map(), tot = new Map();
+    for (const r of direct_requests) {
+      const k = r.week + '|' + r.outcome;
+      const o = m.get(k) || { key: k, week: r.week, outcome: r.outcome, requests: 0 };
+      o.requests += Number(r.requests);
+      m.set(k, o);
+      tot.set(r.week, (tot.get(r.week) || 0) + Number(r.requests));
+    }
+    return [...m.values()].map((o) => ({ ...o, share: Math.round((o.requests / tot.get(o.week)) * 1000) / 1000 }));
+  },
+});
+
+dash.calc('dm_products', {
+  title: 'Дірект: запити за товарами',
+  description: 'Запити в Дірект за групою товару і результатом за тиждень.',
+  inputs: ['direct_requests'],
+  fn: (direct_requests) => {
+    const col = { 'Замовлення': 'orders', 'Прийде / купив у магазині': 'store', 'Немає розміру або товару': 'no_size', 'Ігнор після відповіді': 'ignored', 'Не прочитав / не відповів': 'unread' };
+    const m = new Map();
+    for (const r of direct_requests) {
+      const k = r.week + '|' + r.product_group;
+      const o = m.get(k) || { key: k, week: r.week, product_group: r.product_group, requests: 0, orders: 0, store: 0, no_size: 0, ignored: 0, unread: 0, other: 0 };
+      const n = Number(r.requests);
+      o.requests += n;
+      o[col[r.outcome] || 'other'] += n;
+      m.set(k, o);
+    }
+    return [...m.values()];
+  },
+});
+
+dash.calc('sales_groups', {
+  title: 'Онлайн-продажі за групами',
+  description: 'Позиції, виторг і маржа онлайн-продажів за групою товарів у кожному тижні (повернення віднімаються).',
+  inputs: ['online_orders'],
+  fn: (online_orders) => {
+    const m = new Map();
+    for (const r of online_orders) {
+      const k = r.week + '|' + r.group;
+      const o = m.get(k) || { key: k, week: r.week, group: r.group, items: 0, revenue_uah: 0, margin_uah: 0 };
+      o.items += Number(r.qty);
+      o.revenue_uah += Number(r.revenue_uah);
+      o.margin_uah += Number(r.revenue_uah) - Number(r.cogs_uah);
+      m.set(k, o);
+    }
+    return [...m.values()].map((o) => ({ ...o, revenue_uah: Math.round(o.revenue_uah), margin_uah: Math.round(o.margin_uah) }));
+  },
+});
+
+dash.calc('funnel', {
+  title: 'Воронка переписок',
+  description: 'Переписки з реклами за глибиною (Meta), онлайн-замовлення тижня, частка, що дійшла з попереднього кроку, і значення попереднього тижня.',
+  inputs: ['meta_weekly', 'sales_weekly'],
+  fn: (meta_weekly, sales_weekly) => {
+    const orders = new Map(sales_weekly.map((r) => [r.week, r.orders]));
+    const steps = [['msg_started', 'Почали переписку з реклами'], ['msg_depth2', 'Клієнт написав 2+ повідомлення'], ['msg_depth3', 'Клієнт написав 3+ повідомлення'], ['msg_depth5', 'Клієнт написав 5+ повідомлень']];
+    const weeks = [...meta_weekly].sort((a, b) => (a.week < b.week ? -1 : 1));
+    const values = (w) => [...steps.map(([f]) => Number(w[f])), orders.get(w.week) ?? 0];
+    const out = [];
+    weeks.forEach((w, i) => {
+      const v = values(w);
+      const pv = i > 0 ? values(weeks[i - 1]) : null;
+      [...steps.map(([, l]) => l), 'Онлайн-замовлення (усі)'].forEach((label, j) => out.push({
+        key: w.week + '|' + (j + 1), week: w.week, step: j + 1, label, value: v[j],
+        from_prev: j > 0 && j < 4 && v[j - 1] ? Math.round((v[j] / v[j - 1]) * 1000) / 1000 : null,
+        prev_week_value: pv ? pv[j] : null,
+      }));
+    });
+    return out;
+  },
+});
+
+dash.calc('msg_payback', {
+  title: 'Переписки: витрати і маржа',
+  description: 'Витрати на напрям «1 Переписки» в гривнях за умовним курсом 42 грн за долар і маржа онлайн-продажів тижня.',
+  inputs: ['msg_cost', 'sales_weekly'],
+  fn: (msg_cost, sales_weekly) => {
+    const RATE = 42;
+    const s = new Map(sales_weekly.map((r) => [r.week, r]));
+    return msg_cost.map((c) => {
+      const spend = Math.round(Number(c.msg_spend_usd) * RATE);
+      const margin = s.get(c.week)?.margin_uah ?? 0;
+      return { week: c.week, msg_spend_uah: spend, margin_uah: margin, margin_per_uah: spend ? Math.round((margin / spend) * 100) / 100 : null };
+    });
+  },
+});
+
+/* ---------- Сторінка ---------- */
+(() => {
+  const root = document.getElementById('bw');
+  const NF0 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 });
+  const NF1 = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const NF2 = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const NF3 = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const isNum = (v) => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v));
+  const F = {
+    int: (v) => (isNum(v) ? NF0.format(Number(v)) : '—'),
+    signed: (v) => (isNum(v) ? (Number(v) > 0 ? '+' : '') + NF0.format(Number(v)) : '—'),
+    usd: (v) => (isNum(v) ? '$' + NF2.format(Number(v)) : '—'),
+    usd3: (v) => (isNum(v) ? '$' + NF3.format(Number(v)) : '—'),
+    uah: (v) => (isNum(v) ? NF0.format(Number(v)) + ' грн' : '—'),
+    pct: (v) => (isNum(v) ? NF1.format(Number(v) * 100) + '%' : '—'),
+    dec2: (v) => (isNum(v) ? NF2.format(Number(v)) : '—'),
+    ratio: (v) => (isNum(v) ? NF2.format(Number(v)) + ' грн' : '—'),
+  };
+  const shortAxis = (v) => (Math.abs(v) >= 1000 ? NF0.format(v / 1000) + ' тис.' : NF0.format(v));
+  const dayMonth = (iso) => String(iso).slice(8, 10) + '.' + String(iso).slice(5, 7);
+  const enc = encodeURIComponent;
+  const data = (id) => dash.data(id);
+  const rowsOf = (id) => { const d = data(id); return d.status === 'ok' && Array.isArray(d.data) ? d.data : []; };
+  const ok = (...ids) => ids.every((id) => data(id).status === 'ok');
+  const failed = (...ids) => ids.some((id) => data(id).status === 'error');
+  const colors = () => dash.colors || [];
+
+  const setMark = (el, source, field, where) => {
+    if (!el) return;
+    el.setAttribute('data-source', source);
+    if (field) el.setAttribute('data-field', field); else el.removeAttribute('data-field');
+    if (where) el.setAttribute('data-where', where); else el.removeAttribute('data-where');
+  };
+  const fill = (el, text, ready) => {
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('dash-skeleton', !ready);
+  };
+  const failBox = (el) => {
+    el.replaceChildren();
+    const d = document.createElement('div');
+    d.className = 'bw-fail';
+    d.textContent = 'Не завантажилось';
+    el.appendChild(d);
+  };
+  const waitBox = (el) => { el.replaceChildren(); el.classList.add('dash-skeleton'); };
+
+  /* ---- тиждень і вкладки ---- */
+  const TABS = ['overview', 'ads', 'dm', 'social', 'sales'];
+  let tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
+  const weekList = () => rowsOf('meta_weekly').map((r) => ({ week: String(r.week), label: r.week_label })).sort((a, b) => (a.week < b.week ? -1 : 1));
+  const current = () => {
+    const weeks = weekList();
+    const p = dash.params().week;
+    const i = weeks.findIndex((w) => w.week === p);
+    const idx = i >= 0 ? i : weeks.length - 1;
+    return { weeks, idx, wk: weeks[idx] ? weeks[idx].week : null, prev: idx > 0 ? weeks[idx - 1].week : null, label: weeks[idx] ? weeks[idx].label : '' };
+  };
+  const pickWeek = (w) => dash.setParams({ week: w });
+
+  root.querySelectorAll('.bw-tab').forEach((b) => b.addEventListener('click', () => {
+    tab = b.dataset.tab;
+    dash.setLink(tab);
+    draw();
+  }));
+
+  /* ---- підказка ---- */
+  const tipFor = (card) => {
+    let t = card.querySelector(':scope > .bw-tip');
+    if (!t) { t = document.createElement('div'); t.className = 'bw-tip'; t.hidden = true; card.appendChild(t); }
+    return {
+      show(title, lines, ev) {
+        t.replaceChildren();
+        const h = document.createElement('div'); h.className = 'bw-tip-h'; h.textContent = title; t.appendChild(h);
+        for (const l of lines) {
+          const r = document.createElement('div'); r.className = 'bw-tip-r';
+          if (l.color) { const sw = document.createElement('span'); sw.className = 'bw-sw'; sw.style.background = l.color; r.appendChild(sw); }
+          const n = document.createElement('span'); n.textContent = l.name;
+          const v = document.createElement('b'); v.textContent = l.value;
+          r.append(n, v); t.appendChild(r);
+        }
+        t.hidden = false;
+        const box = card.getBoundingClientRect();
+        const x = ev.clientX - box.left, y = ev.clientY - box.top;
+        const tw = t.offsetWidth, th = t.offsetHeight;
+        let left = x + 14; if (left + tw > card.clientWidth - 4) left = x - tw - 14; left = Math.max(4, left);
+        let top = y - th - 10; if (top < 4) top = Math.min(y + 14, card.clientHeight - th - 4);
+        t.style.left = left + 'px'; t.style.top = top + 'px';
+      },
+      hide() { t.hidden = true; },
+    };
+  };
+
+  /* ---- стовпчикова діаграма ---- */
+  const measure = (svg, texts) => {
+    const g = svg.append('g').attr('visibility', 'hidden');
+    let w = 0;
+    for (const s of texts) { const t = g.append('text').attr('font-size', 12).text(s); w = Math.max(w, t.node().getComputedTextLength()); }
+    g.remove();
+    return w;
+  };
+  const barChart = (el, o) => {
+    el.replaceChildren();
+    el.classList.remove('dash-skeleton');
+    const W = Math.max(280, el.clientWidth), H = o.height || 240;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+    const cats = o.cats, S = o.series;
+    let lo = 0, hi = 0;
+    cats.forEach((c, i) => {
+      if (o.stacked) {
+        let pos = 0, neg = 0;
+        S.forEach((s) => { const v = Number(s.values[i]) || 0; if (v >= 0) pos += v; else neg += v; });
+        hi = Math.max(hi, pos); lo = Math.min(lo, neg);
+      } else S.forEach((s) => { const v = Number(s.values[i]) || 0; hi = Math.max(hi, v); lo = Math.min(lo, v); });
+    });
+    if (o.overlay) o.overlay.values.forEach((v) => { if (isNum(v)) hi = Math.max(hi, Number(v)); });
+    if (hi === 0 && lo === 0) hi = 1;
+    const y = d3.scaleLinear([lo, hi], [H - 26, 8]).nice(4);
+    const ticks = y.ticks(4);
+    const ml = Math.ceil(measure(svg, ticks.map(o.axisFmt || shortAxis))) + 10;
+    const x = d3.scaleBand(cats.map((c) => c.key), [ml, W - 4]).paddingInner(0.28).paddingOuter(0.12);
+    const gy = svg.append('g');
+    ticks.forEach((t) => {
+      gy.append('line').attr('x1', ml).attr('x2', W - 4).attr('y1', y(t)).attr('y2', y(t)).style('stroke', t === 0 ? 'var(--cds-chart-axis)' : 'var(--cds-chart-grid)').attr('stroke-width', 1);
+      gy.append('text').attr('x', ml - 8).attr('y', y(t)).attr('dy', '0.32em').attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text((o.axisFmt || shortAxis)(t));
+    });
+    const inner = o.stacked ? null : d3.scaleBand(S.map((s, i) => i), [0, x.bandwidth()]).padding(0.12);
+    const gb = svg.append('g');
+    cats.forEach((c, i) => {
+      let pos = 0, neg = 0;
+      const dim = o.selected && c.key !== o.selected ? 0.45 : 1;
+      S.forEach((s, j) => {
+        const v = Number(s.values[i]) || 0;
+        if (!v) return;
+        let y0, y1, bx, bw;
+        if (o.stacked) {
+          if (v >= 0) { y0 = pos; y1 = pos + v; pos = y1; } else { y0 = neg; y1 = neg + v; neg = y1; }
+          bx = x(c.key); bw = Math.min(x.bandwidth(), 48); bx += (x.bandwidth() - bw) / 2;
+        } else { y0 = 0; y1 = v; bw = Math.min(inner.bandwidth(), 32); bx = x(c.key) + inner(j) + (inner.bandwidth() - bw) / 2; }
+        const top = Math.min(y(y0), y(y1)), h = Math.max(1, Math.abs(y(y0) - y(y1)));
+        gb.append('rect').attr('x', bx).attr('y', top).attr('width', bw).attr('height', h).attr('rx', o.stacked ? 2 : 4).style('fill', s.color).attr('opacity', dim);
+      });
+    });
+    if (o.overlay) {
+      const ov = o.overlay;
+      const pts = cats.map((c, i) => ({ c, v: isNum(ov.values[i]) ? Number(ov.values[i]) : null })).filter((p) => p.v !== null);
+      const cx = (p) => x(p.c.key) + x.bandwidth() / 2;
+      svg.append('path').attr('d', d3.line().x(cx).y((p) => y(p.v))(pts)).style('fill', 'none').style('stroke', ov.color).attr('stroke-width', 2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+      pts.forEach((p) => svg.append('circle').attr('cx', cx(p)).attr('cy', y(p.v)).attr('r', 4).style('fill', ov.color).style('stroke', 'var(--color-panel)').attr('stroke-width', 1.5));
+    }
+    const step = x.step();
+    const lblW = measure(svg, cats.map((c) => c.short));
+    const every = Math.max(1, Math.ceil((lblW + 8) / step));
+    cats.forEach((c, i) => {
+      if ((cats.length - 1 - i) % every) return;
+      svg.append('text').attr('x', x(c.key) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12)
+        .style('fill', c.key === o.selected ? 'var(--color-fg)' : 'var(--color-fg-muted)').attr('font-weight', c.key === o.selected ? 600 : 400).text(c.short);
+    });
+    const card = el.closest('.bw-card');
+    const tip = tipFor(card);
+    cats.forEach((c, i) => {
+      svg.append('rect').attr('x', x(c.key) - (step - x.bandwidth()) / 2).attr('y', 0).attr('width', step).attr('height', H).style('fill', 'transparent')
+        .style('cursor', o.onClick ? 'pointer' : 'default')
+        .on('mousemove', (ev) => {
+          const lines = S.map((s) => ({ color: s.color, name: s.name, value: (s.fmt || o.fmt)(s.tipValues ? s.tipValues[i] : s.values[i]) }));
+          if (o.total) lines.push({ name: 'Разом', value: o.fmt(o.total[i]) });
+          if (o.overlay) lines.push({ color: o.overlay.color, name: o.overlay.name, value: o.fmt(o.overlay.values[i]) });
+          tip.show(c.label, lines, ev);
+        })
+        .on('mouseleave', () => tip.hide())
+        .on('click', () => o.onClick && o.onClick(c.key));
+    });
+  };
+
+  /* ---- лінійна діаграма ---- */
+  const lineChart = (el, o) => {
+    el.replaceChildren();
+    el.classList.remove('dash-skeleton');
+    const spark = !!o.spark;
+    const W = Math.max(spark ? 120 : 260, el.clientWidth), H = o.height || (spark ? 44 : 180);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+    const pts = o.cats.map((c, i) => ({ c, v: isNum(o.values[i]) ? Number(o.values[i]) : null })).filter((p) => p.v !== null);
+    if (!pts.length) return;
+    const vmax = d3.max(pts, (p) => p.v), vmin = Math.min(0, d3.min(pts, (p) => p.v));
+    const y = d3.scaleLinear([vmin, vmax || 1], spark ? [H - 4, 4] : [H - 26, 10]);
+    if (!spark) y.nice(3);
+    const ticks = spark ? [] : y.ticks(3);
+    const ml = spark ? 4 : Math.ceil(measure(svg, ticks.map(o.axisFmt || o.fmt))) + 10;
+    const endLbl = spark ? 0 : Math.ceil(measure(svg, [o.fmt(pts[pts.length - 1].v)])) + 10;
+    const x = d3.scalePoint(o.cats.map((c) => c.key), [ml + (spark ? 0 : 8), W - 4 - endLbl]);
+    ticks.forEach((t) => {
+      svg.append('line').attr('x1', ml).attr('x2', W - 4).attr('y1', y(t)).attr('y2', y(t)).style('stroke', t === 0 ? 'var(--cds-chart-axis)' : 'var(--cds-chart-grid)');
+      svg.append('text').attr('x', ml - 8).attr('y', y(t)).attr('dy', '0.32em').attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text((o.axisFmt || o.fmt)(t));
+    });
+    const color = o.color || colors()[0];
+    svg.append('path').attr('d', d3.line().x((p) => x(p.c.key)).y((p) => y(p.v))(pts)).style('fill', 'none').style('stroke', color).attr('stroke-width', 2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+    pts.forEach((p) => {
+      const sel = p.c.key === o.selected;
+      if (spark && !sel) return;
+      svg.append('circle').attr('cx', x(p.c.key)).attr('cy', y(p.v)).attr('r', sel ? 4 : 2.5).style('fill', sel ? color : 'var(--color-panel)').style('stroke', color).attr('stroke-width', 2);
+    });
+    if (!spark) {
+      const last = pts[pts.length - 1];
+      svg.append('text').attr('x', x(last.c.key) + 8).attr('y', y(last.v)).attr('dy', '0.32em').attr('font-size', 12).style('fill', 'var(--color-fg)').text(o.fmt(last.v));
+      const lblW = measure(svg, o.cats.map((c) => c.short));
+      const every = Math.max(1, Math.ceil((lblW + 8) / Math.max(1, x.step())));
+      o.cats.forEach((c, i) => {
+        if ((o.cats.length - 1 - i) % every) return;
+        svg.append('text').attr('x', x(c.key)).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12)
+          .style('fill', c.key === o.selected ? 'var(--color-fg)' : 'var(--color-fg-muted)').text(c.short);
+      });
+    }
+    const card = el.closest('.bw-card');
+    const tip = tipFor(card);
+    const hit = svg.append('rect').attr('x', 0).attr('y', 0).attr('width', W).attr('height', H).style('fill', 'transparent');
+    hit.on('mousemove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      let best = pts[0];
+      for (const p of pts) if (Math.abs(x(p.c.key) - mx) < Math.abs(x(best.c.key) - mx)) best = p;
+      tip.show(best.c.label, [{ name: o.name, value: o.fmt(best.v) }], ev);
+    }).on('mouseleave', () => tip.hide());
+  };
+
+  /* ---- таблиці ---- */
+  const sorts = {};
+  const cmp = (a, b) => {
+    const na = isNum(a), nb = isNum(b);
+    if (na && nb) return Number(a) - Number(b);
+    if (a == null || a === '') return 1;
+    if (b == null || b === '') return -1;
+    return String(a).localeCompare(String(b), 'uk');
+  };
+  const table = (id, rows, cols, keyOf, opts = {}) => {
+    const t = document.getElementById(id);
+    const st = sorts[id];
+    let list = rows;
+    if (st) { list = rows.slice().sort((a, b) => st.dir * cmp(a[st.field], b[st.field])); }
+    t.querySelectorAll('th').forEach((th) => th.setAttribute('aria-sort', st && st.field === th.dataset.field ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    const tb = t.tBodies[0];
+    tb.replaceChildren(...list.map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = keyOf(r);
+      if (opts.rowClass) tr.className = opts.rowClass(r);
+      for (const c of cols) {
+        const td = document.createElement('td');
+        if (c.num) td.className = 'n';
+        if (c.wide) td.classList.add('wide');
+        if (c.node) td.appendChild(c.node(r));
+        else td.textContent = c.fmt ? c.fmt(r[c.field], r) : (r[c.field] == null || r[c.field] === '' ? '—' : String(r[c.field]));
+        tr.appendChild(td);
+      }
+      return tr;
+    }));
+    if (!list.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = cols.length; td.className = 'bw-note'; td.textContent = opts.empty || 'Немає даних за цей тиждень';
+      tr.appendChild(td); tb.appendChild(tr);
+    }
+  };
+  root.querySelectorAll('.bw-table').forEach((t) => {
+    t.querySelectorAll('th').forEach((th) => {
+      const b = th.querySelector('button');
+      if (!b) return;
+      b.addEventListener('click', () => {
+        const cur = sorts[t.id];
+        const numeric = th.classList.contains('n');
+        sorts[t.id] = cur && cur.field === th.dataset.field ? { field: th.dataset.field, dir: -cur.dir } : { field: th.dataset.field, dir: numeric ? -1 : 1 };
+        draw();
+      });
+    });
+  });
+
+  /* ---- картки показників ---- */
+  const kpiCard = (host, spec) => {
+    let card = host.querySelector(`[data-kpi="${spec.id}"]`);
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'bw-card bw-kpi';
+      card.dataset.kpi = spec.id;
+      card.id = 'kpi-' + spec.id;
+      const l = document.createElement('div'); l.className = 'bw-label'; l.textContent = spec.label;
+      const v = document.createElement('div'); v.className = 'bw-big dash-skeleton'; v.textContent = '—';
+      const d = document.createElement('div'); d.className = 'bw-delta'; d.textContent = '';
+      const s = document.createElement('div'); s.className = 'bw-sub'; s.textContent = '';
+      card.append(l, v, d, s);
+      if (spec.spark) { const sp = document.createElement('div'); sp.className = 'bw-spark'; card.appendChild(sp); }
+      host.appendChild(card);
+    }
+    return { card, value: card.children[1], delta: card.children[2], sub: card.children[3], spark: card.querySelector('.bw-spark') };
+  };
+  const rowAt = (id, wk) => rowsOf(id).find((r) => r.week === wk);
+  const weekShort = (iso) => {
+    const a = new Date(iso + 'T00:00:00Z'), b = new Date(a.getTime() + 6 * 864e5);
+    const dd = (d) => String(d.getUTCDate()).padStart(2, '0'), mm = (d) => String(d.getUTCMonth() + 1).padStart(2, '0');
+    return a.getUTCMonth() === b.getUTCMonth() ? dd(a) + '–' + dd(b) + '.' + mm(b) : dd(a) + '.' + mm(a) + '–' + dd(b) + '.' + mm(b);
+  };
+  const cats = (weeks) => weeks.map((w) => ({ key: w.week, label: w.label, short: weekShort(w.week) }));
+
+  const deltaText = (el, kpiRow, key, mode, good, prevLabel) => {
+    el.classList.remove('bw-up', 'bw-down');
+    el.replaceChildren();
+    if (!kpiRow) { el.textContent = ''; return; }
+    const f = key + (mode === 'pct' ? '_pct' : '_diff');
+    const v = kpiRow[f];
+    if (!isNum(v)) { el.textContent = 'немає попереднього тижня'; el.removeAttribute('data-source'); return; }
+    const n = Number(v);
+    const span = document.createElement('span');
+    setMark(span, 'kpi', f, 'week=' + enc(kpiRow.week));
+    span.textContent = (n > 0 ? '+' : n < 0 ? '−' : '') + (mode === 'pct' ? NF0.format(Math.abs(n) * 100) + '%' : (key.endsWith('_usd') ? '$' + NF2.format(Math.abs(n)) : NF0.format(Math.abs(n))));
+    el.append(span, document.createTextNode(' до ' + prevLabel));
+    if (good && n !== 0) el.classList.add((n > 0) === (good > 0) ? 'bw-up' : 'bw-down');
+  };
+
+  const OVERVIEW = [
+    { id: 'orders', label: 'Онлайн-замовлення', src: 'sales_weekly', field: 'orders', fmt: F.int, key: 'orders', mode: 'diff', good: 1, sub: { src: 'sales_weekly', field: 'revenue_uah', fmt: F.uah, after: ' виторг' } },
+    { id: 'requests', label: 'Запити в Дірект', src: 'dm_weekly', field: 'requests', fmt: F.int, key: 'requests', mode: 'diff', good: 1, sub: { src: 'dm_weekly', field: 'won', fmt: F.int, before: 'замовлення або магазин: ' } },
+    { id: 'msg', label: 'Нові переписки з реклами', src: 'meta_weekly', field: 'msg_started', fmt: F.int, key: 'msg_started', mode: 'diff', good: 1, sub: { src: 'msg_cost', field: 'cost_per_msg_usd', fmt: F.usd, before: 'ціна переписки ' } },
+    { id: 'spend', label: 'Витрати на рекламу', src: 'meta_weekly', field: 'spend_usd', fmt: F.usd, key: 'spend_usd', mode: 'pct', good: 0, sub: { src: 'meta_weekly', field: 'cpc_link_usd', fmt: F.usd3, before: 'ціна кліку ' } },
+    { id: 'reach', label: 'Охоплення реклами', src: 'meta_weekly', field: 'reach', fmt: F.int, key: 'reach', mode: 'pct', good: 1, sub: { src: 'meta_weekly', field: 'frequency', fmt: F.dec2, before: 'частота ' } },
+    { id: 'ig', label: 'Чистий приріст Instagram', src: 'social_weekly', field: 'ig_net_follows', fmt: F.signed, key: 'ig_net_follows', mode: 'diff', good: 1, sub: { src: 'social_weekly', field: 'ig_follows', fmt: F.int, before: 'підписок ' } },
+  ];
+
+  const drawKpis = (host, specs, cur, withDelta) => {
+    const kp = rowsOf('kpi');
+    const kpiRow = kp.find((r) => r.week === cur.wk);
+    const prevLabel = cur.prev ? cur.weeks[cur.idx - 1].label : '';
+    for (const s of specs) {
+      const k = kpiCard(host, { ...s, spark: withDelta });
+      const st = data(s.src).status;
+      setMark(k.value, s.src, s.field, cur.wk ? 'week=' + enc(cur.wk) : null);
+      if (st === 'error') { fill(k.value, '—', true); k.delta.textContent = 'Не завантажилось'; continue; }
+      const r = rowAt(s.src, cur.wk);
+      fill(k.value, r ? s.fmt(r[s.field]) : '—', st === 'ok');
+      if (s.sub) {
+        k.sub.replaceChildren();
+        const sr = rowAt(s.sub.src, cur.wk);
+        const sp = document.createElement('span');
+        setMark(sp, s.sub.src, s.sub.field, cur.wk ? 'week=' + enc(cur.wk) : null);
+        sp.textContent = sr ? s.sub.fmt(sr[s.sub.field]) : '—';
+        k.sub.append(document.createTextNode(s.sub.before || ''), sp, document.createTextNode(s.sub.after || ''));
+      }
+      if (withDelta) {
+        deltaText(k.delta, kpiRow, s.key, s.mode, s.good, prevLabel);
+        setMark(k.spark, 'kpi');
+        if (data('kpi').status === 'ok' && tab === 'overview') {
+          lineChart(k.spark, { spark: true, cats: cats(cur.weeks), values: cur.weeks.map((w) => (kp.find((r) => r.week === w.week) || {})[s.key]), fmt: s.fmt, selected: cur.wk, name: s.label, color: colors()[0] });
+        }
+      } else if (s.prevField !== false) {
+        k.delta.replaceChildren();
+        const pr = cur.prev ? rowAt(s.src, cur.prev) : null;
+        const w = rowAt('wow', cur.wk);
+        const f = s.field + '_pct';
+        if (w && isNum(w[f])) {
+          const n = Number(w[f]);
+          const b = document.createElement('span');
+          const dir = n > 0 ? 1 : n < 0 ? -1 : 0;
+          b.className = 'bw-badge ' + (dir === 0 || !s.good ? 'flat' : (dir > 0) === (s.good > 0) ? 'up' : 'down');
+          setMark(b, 'wow', f, 'week=' + enc(cur.wk));
+          b.textContent = (dir > 0 ? '▲ +' : dir < 0 ? '▼ −' : '') + (Math.abs(n) < 0.1 && n !== 0 ? NF1 : NF0).format(Math.abs(n) * 100) + '%';
+          k.delta.appendChild(b);
+        }
+        if (pr) {
+          const sp = document.createElement('span');
+          setMark(sp, s.src, s.field, 'week=' + enc(cur.prev));
+          sp.textContent = s.fmt(pr[s.field]);
+          k.delta.append(document.createTextNode('тиждень тому: '), sp);
+        }
+      }
+    }
+  };
+
+  /* ---- Огляд ---- */
+  const TONE = { good: '▲', bad: '▼', action: '→', info: '•' };
+  const drawOverview = (cur) => {
+    drawKpis(document.getElementById('kpis'), OVERVIEW, cur, true);
+    const ul = document.getElementById('insights-list');
+    const st = data('insights').status;
+    if (st === 'error') { failBox(ul); return; }
+    if (st !== 'ok') { waitBox(ul); return; }
+    ul.classList.remove('dash-skeleton');
+    const items = rowsOf('insights').filter((r) => r.week === cur.wk && r.tone !== 'headline').sort((a, b) => Number(a.n) - Number(b.n));
+    ul.replaceChildren(...items.map((r) => {
+      const li = document.createElement('li');
+      const ic = document.createElement('span'); ic.className = 'bw-ico ' + (TONE[r.tone] ? r.tone : 'info'); ic.textContent = TONE[r.tone] || '•';
+      ic.setAttribute('aria-hidden', 'true');
+      const tx = document.createElement('span');
+      setMark(tx, 'insights', 'text', 'week=' + enc(cur.wk) + '&n=' + enc(r.n));
+      tx.textContent = r.text;
+      li.append(ic, tx);
+      return li;
+    }));
+    if (!items.length) { const li = document.createElement('li'); li.className = 'bw-note'; li.textContent = 'Висновків за цей тиждень ще немає.'; ul.appendChild(li); }
+  };
+
+  /* ---- Таргет ---- */
+  const drawAds = (cur) => {
+    const chart = document.getElementById('ads-spend-chart');
+    const legend = document.getElementById('ads-legend');
+    if (failed('ads_breakdown', 'meta_campaigns')) { failBox(chart); legend.replaceChildren(); }
+    else if (!ok('ads_breakdown')) waitBox(chart);
+    else {
+      const rows = rowsOf('ads_breakdown').filter((r) => r.level === 'Напрям');
+      const dirs = [...new Set(rows.map((r) => r.direction))].sort();
+      const col = (i) => colors()[i % colors().length];
+      legend.replaceChildren(...dirs.map((d, i) => { const s = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = col(i); s.append(sw, document.createTextNode(d)); return s; }));
+      const cs = cats(cur.weeks);
+      const series = dirs.map((d, i) => ({ name: d, color: col(i), values: cs.map((c) => { const r = rows.find((x) => x.week === c.key && x.direction === d); return r ? Number(r.spend_usd) : 0; }) }));
+      barChart(chart, { cats: cs, series, stacked: true, fmt: F.usd, axisFmt: (v) => '$' + NF0.format(v), selected: cur.wk, onClick: pickWeek, height: 260 });
+    }
+    // напрями і категорії
+    if (ok('ads_breakdown')) {
+      const rows = rowsOf('ads_breakdown').filter((r) => r.week === cur.wk);
+      const st = sorts['ads-dirs-table'];
+      let list = rows;
+      if (st) {
+        const dirsSorted = rows.filter((r) => r.level === 'Напрям').sort((a, b) => st.dir * cmp(a[st.field], b[st.field]));
+        list = [];
+        for (const d of dirsSorted) {
+          list.push(d);
+          list.push(...rows.filter((r) => r.level !== 'Напрям' && r.direction === d.direction).sort((a, b) => st.dir * cmp(a[st.field], b[st.field])));
+        }
+      }
+      const saved = sorts['ads-dirs-table']; delete sorts['ads-dirs-table'];
+      table('ads-dirs-table', list, [
+        { field: 'label' },
+        { field: 'spend_usd', num: true, fmt: F.usd },
+        { field: 'share', num: true, fmt: F.pct },
+        { field: 'link_clicks', num: true, fmt: F.int },
+        { field: 'cpc_link_usd', num: true, fmt: F.usd3 },
+        { field: 'conversations', num: true, fmt: F.int },
+        { field: 'cost_per_conversation_usd', num: true, fmt: F.usd },
+      ], (r) => r.key, { rowClass: (r) => (r.level === 'Напрям' ? 'lvl-dir' : 'lvl-cat') });
+      if (saved) sorts['ads-dirs-table'] = saved;
+      document.getElementById('ads-dirs-table').querySelectorAll('th').forEach((th) => th.setAttribute('aria-sort', saved && saved.field === th.dataset.field ? (saved.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    } else if (failed('ads_breakdown', 'meta_campaigns')) table('ads-dirs-table', [], [{}], () => '', { empty: 'Не завантажилось' });
+    // тренди
+    const cpc = document.getElementById('cpc-chart');
+    if (failed('meta_weekly')) failBox(cpc);
+    else if (ok('meta_weekly')) lineChart(cpc, { cats: cats(cur.weeks), values: cur.weeks.map((w) => (rowAt('meta_weekly', w.week) || {}).cpc_link_usd), fmt: F.usd3, axisFmt: F.usd, selected: cur.wk, name: 'Ціна кліку', color: colors()[0] });
+    else waitBox(cpc);
+    const cm = document.getElementById('cpmsg-chart');
+    if (failed('msg_cost', 'meta_campaigns')) failBox(cm);
+    else if (ok('msg_cost')) lineChart(cm, { cats: cats(cur.weeks), values: cur.weeks.map((w) => (rowAt('msg_cost', w.week) || {}).cost_per_msg_usd), fmt: F.usd, selected: cur.wk, name: 'Ціна переписки', color: colors()[1] });
+    else waitBox(cm);
+    // кампанії
+    if (ok('meta_campaigns')) {
+      if (!sorts['camp-table']) sorts['camp-table'] = { field: 'spend_usd', dir: -1 };
+      table('camp-table', rowsOf('meta_campaigns').filter((r) => r.week === cur.wk), [
+        { field: 'campaign', wide: true },
+        { field: 'direction' },
+        { field: 'category' },
+        { field: 'objective' },
+        { field: 'spend_usd', num: true, fmt: F.usd },
+        { field: 'reach', num: true, fmt: F.int },
+        { field: 'link_clicks', num: true, fmt: F.int },
+        { field: 'unique_link_ctr', num: true, fmt: F.pct },
+        { field: 'cpc_link_usd', num: true, fmt: F.usd3 },
+        { field: 'conversations', num: true, fmt: F.int },
+        { field: 'cost_per_conversation_usd', num: true, fmt: F.usd },
+        { field: 'status' },
+      ], (r) => enc(r.week) + ',' + enc(r.campaign_id));
+    } else if (failed('meta_campaigns')) table('camp-table', [], [{}], () => '', { empty: 'Не завантажилось' });
+  };
+
+  /* ---- Переписки і Дірект ---- */
+  const OUT_ORDER = ['Замовлення', 'Прийде / купив у магазині', 'Немає розміру або товару', 'Не підійшла модель чи колір', 'Не підійшли ціна чи умови', 'Думає / не зараз', 'Ігнор після відповіді', 'Не прочитав / не відповів', 'Без позначки', 'Інфо-питання'];
+  const WON = ['Замовлення', 'Прийде / купив у магазині'];
+  const NEUTRAL = ['Без позначки', 'Інфо-питання'];
+  const drawDm = (cur) => {
+    // воронка
+    const fu = document.getElementById('funnel');
+    if (failed('funnel', 'meta_weekly', 'online_orders')) failBox(fu);
+    else if (!ok('funnel')) waitBox(fu);
+    else {
+      fu.classList.remove('dash-skeleton');
+      const steps = rowsOf('funnel').filter((r) => r.week === cur.wk).sort((a, b) => a.step - b.step);
+      const max = Math.max(1, ...steps.map((s) => Math.max(Number(s.value) || 0, Number(s.prev_week_value) || 0)));
+      let worst = null;
+      steps.forEach((s) => { if (s.step > 1 && s.step < 5 && isNum(s.from_prev) && (!worst || Number(s.from_prev) < Number(worst.from_prev))) worst = s; });
+      fu.replaceChildren(...steps.flatMap((s) => {
+        const parts = [];
+        if (s.step > 1 && isNum(s.from_prev)) {
+          const l = document.createElement('div');
+          l.className = 'bw-loss' + (worst && worst.key === s.key ? ' worst' : '');
+          const v = document.createElement('span'); setMark(v, 'funnel', 'from_prev', 'key=' + enc(s.key)); v.textContent = F.pct(s.from_prev);
+          l.append(document.createTextNode('↓ дійшло '), v, document.createTextNode(' з попереднього кроку'));
+          parts.push(l);
+        }
+        const box = document.createElement('div'); box.className = 'bw-step';
+        const top = document.createElement('div'); top.className = 'bw-step-top';
+        const nm = document.createElement('span'); nm.textContent = s.label;
+        const val = document.createElement('b'); setMark(val, 'funnel', 'value', 'key=' + enc(s.key)); val.textContent = F.int(s.value);
+        top.append(nm, val);
+        const tr = document.createElement('div'); tr.className = 'bw-track';
+        const b = document.createElement('div'); b.className = 'bw-bar'; b.style.width = Math.max(0.5, (Number(s.value) / max) * 100) + '%'; b.style.background = s.step === 5 ? colors()[2] : colors()[0];
+        tr.appendChild(b);
+        if (isNum(s.prev_week_value)) { const p = document.createElement('div'); p.className = 'bw-bar prev'; p.style.width = Math.max(0.5, (Number(s.prev_week_value) / max) * 100) + '%'; tr.appendChild(p); }
+        box.append(top, tr);
+        parts.push(box);
+        return parts;
+      }));
+      if (!steps.length) { fu.textContent = 'Немає даних за цей тиждень'; }
+    }
+    // результати запитів
+    const oc = document.getElementById('outcomes');
+    if (failed('dm_outcomes', 'direct_requests')) failBox(oc);
+    else if (!ok('dm_outcomes')) waitBox(oc);
+    else {
+      oc.classList.remove('dash-skeleton');
+      const rows = rowsOf('dm_outcomes').filter((r) => r.week === cur.wk).sort((a, b) => OUT_ORDER.indexOf(a.outcome) - OUT_ORDER.indexOf(b.outcome));
+      const max = Math.max(1, ...rows.map((r) => Number(r.requests)));
+      const lost = rows.filter((r) => !WON.includes(r.outcome) && !NEUTRAL.includes(r.outcome));
+      const worst = lost.reduce((a, r) => (!a || Number(r.requests) > Number(a.requests) ? r : a), null);
+      oc.replaceChildren(...rows.map((r) => {
+        const box = document.createElement('div'); box.className = 'bw-step';
+        const top = document.createElement('div'); top.className = 'bw-step-top';
+        const nm = document.createElement('span'); nm.textContent = r.outcome;
+        const val = document.createElement('b');
+        const n = document.createElement('span'); setMark(n, 'dm_outcomes', 'requests', 'key=' + enc(r.key)); n.textContent = F.int(r.requests);
+        const sh = document.createElement('span'); setMark(sh, 'dm_outcomes', 'share', 'key=' + enc(r.key)); sh.textContent = F.pct(r.share);
+        val.append(n, document.createTextNode(' · '), sh);
+        top.append(nm, val);
+        const tr = document.createElement('div'); tr.className = 'bw-track';
+        const b = document.createElement('div'); b.className = 'bw-bar'; b.style.width = Math.max(0.5, (Number(r.requests) / max) * 100) + '%';
+        b.style.background = WON.includes(r.outcome) ? colors()[2] : worst && worst.key === r.key ? 'var(--cds-chart-status-critical)' : 'var(--cds-chart-muted)';
+        tr.appendChild(b);
+        box.append(top, tr);
+        return box;
+      }));
+      if (!rows.length) oc.textContent = 'У журналі немає запитів за цей тиждень';
+    }
+    // за товарами
+    if (ok('dm_products')) {
+      if (!sorts['dm-table']) sorts['dm-table'] = { field: 'requests', dir: -1 };
+      table('dm-table', rowsOf('dm_products').filter((r) => r.week === cur.wk), [
+        { field: 'product_group' },
+        { field: 'requests', num: true, fmt: F.int },
+        { field: 'orders', num: true, fmt: F.int },
+        { field: 'store', num: true, fmt: F.int },
+        { field: 'no_size', num: true, fmt: F.int },
+        { field: 'ignored', num: true, fmt: F.int },
+        { field: 'unread', num: true, fmt: F.int },
+        { field: 'other', num: true, fmt: F.int },
+      ], (r) => r.key, { empty: 'У журналі немає запитів за цей тиждень' });
+    } else if (failed('dm_products', 'direct_requests')) table('dm-table', [], [{}], () => '', { empty: 'Не завантажилось' });
+    // тренд
+    const ch = document.getElementById('dm-trend-chart');
+    const lg = document.getElementById('dm-legend');
+    if (failed('dm_weekly', 'direct_requests')) { failBox(ch); lg.replaceChildren(); }
+    else if (!ok('dm_weekly')) waitBox(ch);
+    else {
+      const G = [['won', 'Замовлення або магазин', colors()[2]], ['no_size', 'Немає розміру чи товару', colors()[3]], ['not_fit', 'Не підійшли модель, ціна, умови', colors()[4]], ['ghosted', 'Ігнор або не прочитали', 'var(--cds-chart-status-critical)'], ['other', 'Думає, інфо, без позначки', 'var(--cds-chart-muted)']];
+      const OV = ['Онлайн-замовлення (таблиця продажів)', 'var(--color-fg)'];
+      lg.replaceChildren(...G.map(([, n, c]) => { const s = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = c; s.append(sw, document.createTextNode(n)); return s; }));
+      const cs = cats(cur.weeks);
+      const rows = cs.map((c) => rowAt('dm_weekly', c.key) || {});
+      const sales = ok('sales_weekly') ? cs.map((c) => (rowAt('sales_weekly', c.key) || {}).orders) : null;
+      if (sales) { const s = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = OV[1]; sw.style.borderRadius = '50%'; s.append(sw, document.createTextNode(OV[0])); lg.appendChild(s); }
+      barChart(ch, { cats: cs, stacked: true, fmt: F.int, selected: cur.wk, onClick: pickWeek, series: G.map(([f, n, c]) => ({ name: n, color: c, values: rows.map((r) => Number(r[f]) || 0) })), total: rows.map((r) => Number(r.requests) || 0), overlay: sales ? { name: OV[0], color: OV[1], values: sales } : null });
+    }
+  };
+
+  /* ---- Instagram і Facebook ---- */
+  const IG = [
+    { id: 'ig-follows', label: 'Нові підписки', src: 'social_weekly', field: 'ig_follows', fmt: F.int, good: 1 },
+    { id: 'ig-unfollows', label: 'Відписки', src: 'social_weekly', field: 'ig_unfollows', fmt: F.int, good: -1 },
+    { id: 'ig-reach', label: 'Охоплення профілю', src: 'social_weekly', field: 'ig_reach', fmt: F.int, good: 1 },
+    { id: 'ig-views', label: 'Перегляди контенту', src: 'social_weekly', field: 'ig_views', fmt: F.int, good: 1 },
+    { id: 'ig-total', label: 'Підписників усього', src: 'social_weekly', field: 'ig_followers_total', fmt: F.int, good: 1 },
+  ];
+  const FB = [
+    { id: 'fb-total', label: 'Підписники сторінки', src: 'social_weekly', field: 'fb_followers', fmt: F.int, good: 1 },
+    { id: 'fb-new', label: 'Нові підписники', src: 'social_weekly', field: 'fb_new_followers', fmt: F.signed, good: 1 },
+    { id: 'fb-views', label: 'Перегляди контенту', src: 'social_weekly', field: 'fb_media_views', fmt: F.int, good: 1 },
+    { id: 'fb-visits', label: 'Відвідування сторінки', src: 'social_weekly', field: 'fb_page_visits', fmt: F.int, good: 1 },
+    { id: 'fb-eng', label: 'Взаємодії з дописами', src: 'social_weekly', field: 'fb_engagements', fmt: F.int, good: 1 },
+    { id: 'fb-msg', label: 'Нові переписки', src: 'social_weekly', field: 'fb_new_conversations', fmt: F.int, good: 1 },
+  ];
+  const safeUrl = (u) => (typeof u === 'string' && /^https:\/\/(www\.)?instagram\.com\//.test(u) ? u : null);
+  const drawSocial = (cur) => {
+    drawKpis(document.getElementById('ig-kpis'), IG, cur, false);
+    drawKpis(document.getElementById('fb-kpis'), FB, cur, false);
+    const ch = document.getElementById('ig-follows-chart');
+    const lg = document.getElementById('ig-legend');
+    if (failed('social_weekly')) { failBox(ch); lg.replaceChildren(); }
+    else if (!ok('social_weekly')) waitBox(ch);
+    else {
+      const cs = cats(cur.weeks);
+      const rows = cs.map((c) => rowAt('social_weekly', c.key) || {});
+      const S = [
+        { name: 'Підписки', color: colors()[0], values: rows.map((r) => Number(r.ig_follows) || 0) },
+        { name: 'Відписки', color: 'var(--cds-chart-status-critical)', values: rows.map((r) => -(Number(r.ig_unfollows) || 0)), tipValues: rows.map((r) => Number(r.ig_unfollows) || 0) },
+      ];
+      lg.replaceChildren(...S.map((s) => { const e = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = s.color; e.append(sw, document.createTextNode(s.name)); return e; }));
+      barChart(ch, { cats: cs, series: S, stacked: true, fmt: F.int, axisFmt: (v) => NF0.format(Math.abs(v)), selected: cur.wk, onClick: pickWeek });
+      lineChart(document.getElementById('ig-reach-chart'), { cats: cs, values: rows.map((r) => r.ig_reach), fmt: F.int, axisFmt: shortAxis, selected: cur.wk, name: 'Охоплення профілю', color: colors()[0] });
+    }
+    if (ok('ig_posts')) {
+      if (!sorts['posts-table']) sorts['posts-table'] = { field: 'reach', dir: -1 };
+      table('posts-table', rowsOf('ig_posts').filter((r) => r.week === cur.wk), [
+        { field: 'posted', fmt: (v) => (v ? dayMonth(v) + ' ' + String(v).slice(11, 16) : '—') },
+        { field: 'type' },
+        { field: 'caption', wide: true, node: (r) => {
+          const u = safeUrl(r.url);
+          const e = document.createElement(u ? 'a' : 'span');
+          e.textContent = r.caption || '—';
+          if (u) { e.setAttribute('href', u); e.setAttribute('target', '_blank'); e.setAttribute('rel', 'noopener noreferrer'); }
+          return e;
+        } },
+        { field: 'reach', num: true, fmt: F.int },
+        { field: 'views', num: true, fmt: F.int },
+        { field: 'likes', num: true, fmt: F.int },
+        { field: 'comments', num: true, fmt: F.int },
+        { field: 'saves', num: true, fmt: F.int },
+        { field: 'shares', num: true, fmt: F.int },
+      ], (r) => String(r.media_id), { empty: 'Цього тижня публікацій не було' });
+    } else if (failed('ig_posts')) table('posts-table', [], [{}], () => '', { empty: 'Не завантажилось' });
+  };
+
+  /* ---- Онлайн-продажі ---- */
+  const SALES = [
+    { id: 's-orders', label: 'Замовлення', src: 'sales_weekly', field: 'orders', fmt: F.int, good: 1 },
+    { id: 's-rev', label: 'Виторг', src: 'sales_weekly', field: 'revenue_uah', fmt: F.uah, good: 1 },
+    { id: 's-margin', label: 'Маржа', src: 'sales_weekly', field: 'margin_uah', fmt: F.uah, good: 1 },
+    { id: 's-check', label: 'Середній чек', src: 'sales_weekly', field: 'avg_check_uah', fmt: F.uah, good: 1 },
+    { id: 's-ret', label: 'Повернення', src: 'sales_weekly', field: 'returns', fmt: F.int, good: -1 },
+  ];
+  const drawSales = (cur) => {
+    drawKpis(document.getElementById('sales-kpis'), SALES, cur, false);
+    const ch = document.getElementById('sales-chart');
+    const lg = document.getElementById('sales-legend');
+    if (failed('sales_weekly', 'online_orders')) { failBox(ch); lg.replaceChildren(); }
+    else if (!ok('sales_weekly')) waitBox(ch);
+    else {
+      const cs = cats(cur.weeks);
+      const rows = cs.map((c) => rowAt('sales_weekly', c.key) || {});
+      const S = [
+        { name: 'Виторг', color: colors()[0], values: rows.map((r) => Number(r.revenue_uah) || 0) },
+        { name: 'Маржа', color: colors()[2], values: rows.map((r) => Number(r.margin_uah) || 0) },
+      ];
+      lg.replaceChildren(...S.map((s) => { const e = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = s.color; e.append(sw, document.createTextNode(s.name)); return e; }));
+      barChart(ch, { cats: cs, series: S, stacked: false, fmt: F.uah, selected: cur.wk, onClick: pickWeek });
+    }
+    if (ok('sales_groups')) {
+      if (!sorts['groups-table']) sorts['groups-table'] = { field: 'revenue_uah', dir: -1 };
+      table('groups-table', rowsOf('sales_groups').filter((r) => r.week === cur.wk), [
+        { field: 'group' },
+        { field: 'items', num: true, fmt: F.int },
+        { field: 'revenue_uah', num: true, fmt: F.uah },
+        { field: 'margin_uah', num: true, fmt: F.uah },
+      ], (r) => r.key, { empty: 'Онлайн-продажів цього тижня не було' });
+    } else if (failed('sales_groups', 'online_orders')) table('groups-table', [], [{}], () => '', { empty: 'Не завантажилось' });
+    const p = rowAt('msg_payback', cur.wk);
+    const pst = data('msg_payback').status;
+    [['pay-spend', 'msg_spend_uah', F.uah], ['pay-margin', 'margin_uah', F.uah], ['pay-ratio', 'margin_per_uah', F.ratio]].forEach(([id, f, fm]) => {
+      const el = document.getElementById(id);
+      setMark(el, 'msg_payback', f, cur.wk ? 'week=' + enc(cur.wk) : null);
+      fill(el, p ? fm(p[f]) : '—', pst === 'ok' || pst === 'error');
+    });
+  };
+
+  /* ---- головне ---- */
+  const draw = () => {
+    const cur = current();
+    // вибір тижня
+    const wbox = document.getElementById('weeks');
+    wbox.replaceChildren(...cur.weeks.map((w) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'bw-chip'; b.textContent = w.label;
+      b.setAttribute('aria-pressed', String(w.week === cur.wk));
+      b.addEventListener('click', () => pickWeek(w.week));
+      return b;
+    }));
+    const selChip = wbox.querySelector('[aria-pressed="true"]');
+    if (selChip && wbox.scrollWidth > wbox.clientWidth) {
+      const left = selChip.offsetLeft - wbox.offsetLeft;
+      if (left < wbox.scrollLeft || left + selChip.offsetWidth > wbox.scrollLeft + wbox.clientWidth) wbox.scrollLeft = Math.max(0, left - wbox.clientWidth + selChip.offsetWidth + 8);
+    }
+    const now = document.getElementById('week-now');
+    setMark(now, 'meta_weekly', 'week_label', cur.wk ? 'week=' + enc(cur.wk) : null);
+    fill(now, cur.label || '—', data('meta_weekly').status !== 'loading');
+    const tk = document.getElementById('takeaway');
+    const head = rowsOf('insights').find((r) => r.week === cur.wk && r.tone === 'headline');
+    setMark(tk, 'insights', 'text', cur.wk && head ? 'week=' + enc(cur.wk) + '&n=' + enc(head.n) : null);
+    const ist = data('insights').status;
+    fill(tk, head ? head.text : ist === 'ok' ? 'Висновки за цей тиждень з’являться після оновлення в понеділок.' : '—', ist === 'ok' || ist === 'error');
+    // вкладки
+    root.querySelectorAll('.bw-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+    TABS.forEach((t) => { document.getElementById(t).hidden = t !== tab; });
+    if (!cur.wk && data('meta_weekly').status === 'error') return;
+    if (tab === 'overview') drawOverview(cur);
+    if (tab === 'ads') drawAds(cur);
+    if (tab === 'dm') drawDm(cur);
+    if (tab === 'social') drawSocial(cur);
+    if (tab === 'sales') drawSales(cur);
+  };
+  dash.onData(draw);
+  if (tab !== 'overview') { const el = document.getElementById(tab); if (el) el.scrollIntoView(); }
+})();
+</script>
+<script>
+(() => {
+  const KEY = 'brosko_key_v1';
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const gate = document.getElementById('gate'), site = document.getElementById('site');
+  const pass = document.getElementById('gate-pass'), err = document.getElementById('gate-err'), remember = document.getElementById('gate-remember');
+  let payload = null;
+  const getPayload = async () => {
+    if (payload) return payload;
+    const r = await fetch('data.enc.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('Не вдалося завантажити дані (' + r.status + ')');
+    payload = await r.json();
+    return payload;
+  };
+  const deriveKey = async (pw, p) => {
+    const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(p.salt), iterations: p.iter, hash: 'SHA-256' }, material, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+  };
+  const open = async (key, p) => {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p.iv) }, key, b64(p.ct));
+    const data = JSON.parse(new TextDecoder().decode(plain));
+    gate.hidden = true; site.hidden = false;
+    if (data.updated_at) {
+      const d = new Date(data.updated_at);
+      document.getElementById('updated').textContent = 'Оновлено ' + d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · дані оновлюються щопонеділка вранці';
+    }
+    window.dash._load(data.datasets);
+  };
+  const tryStored = async () => {
+    let raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    if (!raw) return false;
+    try {
+      const p = await getPayload();
+      const key = await crypto.subtle.importKey('raw', b64(raw), { name: 'AES-GCM' }, false, ['decrypt']);
+      await open(key, p);
+      return true;
+    } catch (e) {
+      try { localStorage.removeItem(KEY); } catch (x) {}
+      return false;
+    }
+  };
+  const submit = async () => {
+    err.textContent = '';
+    const pw = pass.value;
+    if (!pw) { err.textContent = 'Введіть пароль'; return; }
+    try {
+      const p = await getPayload();
+      const key = await deriveKey(pw, p);
+      await open(key, p);
+      if (remember.checked) { try { localStorage.setItem(KEY, toB64(await crypto.subtle.exportKey('raw', key))); } catch (e) {} }
+    } catch (e) {
+      err.textContent = e && e.name === 'OperationError' ? 'Невірний пароль' : (e && e.message) || 'Помилка';
+    }
+  };
+  document.getElementById('gate-go').addEventListener('click', submit);
+  pass.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  tryStored().then((ok) => { if (!ok) { gate.hidden = false; pass.focus(); } });
+})();
+</script>
+</body>
+</html>
