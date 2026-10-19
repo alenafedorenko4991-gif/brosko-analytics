@@ -312,7 +312,7 @@ html,body{margin:0;background:var(--color-bg);color:var(--color-fg);font-family:
     <div class="bw-grid">
       <div class="bw-card" id="sales-trend">
         <h3>Виторг і маржа по тижнях</h3>
-        <p class="bw-note">Онлайн-продажі, грн; повернення віднімаються в тижні повернення.</p>
+        <p class="bw-note">Продажі тижня, грн, без урахування повернень. Повернення — окремою смугою в тижні, коли їх оформили.</p>
         <div class="bw-legend" id="sales-legend" data-source="sales_weekly"></div>
         <div class="bw-chart" id="sales-chart" data-source="sales_weekly"></div>
       </div>
@@ -384,7 +384,7 @@ window.dash = (() => {
 /* ---------- Розрахунки (видно в «Джерелах») ---------- */
 dash.calc('sales_weekly', {
   title: 'Онлайн-продажі по тижнях',
-  description: 'Замовлення без повернень, позиції, виторг, маржа (виторг мінус собівартість), середній чек і повернення за кожен тиждень.',
+  description: 'Замовлення без повернень, позиції, виторг і маржа продажів тижня (без урахування повернень), середній чек, повернення (кількість і сума) та чистий виторг після повернень.',
   inputs: ['online_orders', 'meta_weekly'],
   fn: (online_orders, meta_weekly) => meta_weekly.map((w) => {
     const rows = online_orders.filter((r) => r.week === w.week);
@@ -392,13 +392,16 @@ dash.calc('sales_weekly', {
     const sold = rows.filter((r) => !isRet(r));
     const orders = new Set(sold.map((r) => r.order)).size;
     const sum = (list, f) => list.reduce((s, r) => s + Number(r[f]), 0);
-    const revenue = sum(rows, 'revenue_uah');
+    const ret = rows.filter(isRet);
+    const revenue = sum(sold, 'revenue_uah');
     return {
       week: w.week,
       orders,
       items: sum(sold, 'qty'),
       revenue_uah: Math.round(revenue),
-      margin_uah: Math.round(revenue - sum(rows, 'cogs_uah')),
+      margin_uah: Math.round(revenue - sum(sold, 'cogs_uah')),
+      returns_uah: Math.round(-sum(ret, 'revenue_uah')),
+      net_revenue_uah: Math.round(sum(rows, 'revenue_uah')),
       avg_check_uah: orders ? Math.round(sum(sold, 'revenue_uah') / orders) : null,
       returns: new Set(rows.filter(isRet).map((r) => r.order)).size,
     };
@@ -572,13 +575,15 @@ dash.calc('dm_products', {
 
 dash.calc('sales_groups', {
   title: 'Онлайн-продажі за групами',
-  description: 'Позиції, виторг і маржа онлайн-продажів за групою товарів у кожному тижні (повернення віднімаються).',
+  description: 'Позиції, виторг і маржа онлайн-продажів за групою товарів у кожному тижні ; повернення — окремими рядками з мінусом.',
   inputs: ['online_orders'],
   fn: (online_orders) => {
     const m = new Map();
     for (const r of online_orders) {
-      const k = r.week + '|' + r.group;
-      const o = m.get(k) || { key: k, week: r.week, group: r.group, items: 0, revenue_uah: 0, margin_uah: 0 };
+      const isRet = r.is_return === true || r.is_return === 'true';
+      const g = isRet ? 'Повернення: ' + r.group : r.group;
+      const k = r.week + '|' + g;
+      const o = m.get(k) || { key: k, week: r.week, group: g, items: 0, revenue_uah: 0, margin_uah: 0 };
       o.items += Number(r.qty);
       o.revenue_uah += Number(r.revenue_uah);
       o.margin_uah += Number(r.revenue_uah) - Number(r.cogs_uah);
@@ -1251,7 +1256,8 @@ dash.calc('msg_payback', {
     { id: 's-rev', label: 'Виторг', src: 'sales_weekly', field: 'revenue_uah', fmt: F.uah, good: 1 },
     { id: 's-margin', label: 'Маржа', src: 'sales_weekly', field: 'margin_uah', fmt: F.uah, good: 1 },
     { id: 's-check', label: 'Середній чек', src: 'sales_weekly', field: 'avg_check_uah', fmt: F.uah, good: 1 },
-    { id: 's-ret', label: 'Повернення', src: 'sales_weekly', field: 'returns', fmt: F.int, good: -1 },
+    { id: 's-ret', label: 'Повернення', src: 'sales_weekly', field: 'returns', fmt: F.int, good: -1, sub: { src: 'sales_weekly', field: 'returns_uah', fmt: F.uah, after: ' повернули' } },
+    { id: 's-net', label: 'Чистий виторг після повернень', src: 'sales_weekly', field: 'net_revenue_uah', fmt: F.uah, good: 1, prevField: false },
   ];
   const drawSales = (cur) => {
     drawKpis(document.getElementById('sales-kpis'), SALES, cur, false);
@@ -1265,6 +1271,7 @@ dash.calc('msg_payback', {
       const S = [
         { name: 'Виторг', color: colors()[0], values: rows.map((r) => Number(r.revenue_uah) || 0) },
         { name: 'Маржа', color: colors()[2], values: rows.map((r) => Number(r.margin_uah) || 0) },
+        { name: 'Повернення', color: 'var(--color-bad)', values: rows.map((r) => Number(r.returns_uah) || 0) },
       ];
       lg.replaceChildren(...S.map((s) => { const e = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'bw-sw'; sw.style.background = s.color; e.append(sw, document.createTextNode(s.name)); return e; }));
       barChart(ch, { cats: cs, series: S, stacked: false, fmt: F.uah, selected: cur.wk, onClick: pickWeek });
